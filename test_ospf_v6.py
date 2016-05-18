@@ -91,6 +91,26 @@ class OSPF_IPv6_ConfigSuite(unittest.TestCase):
         assert flag
 
     @pytest.mark.run(order=6)
+    def test_update_ospf_ipv6_config(self):
+        logging.info("Update OSPF Configuration using heat")
+        commands.getoutput("sed -i -r 's/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/" + GRID_VIP + "/' ospf-settings.yaml")
+        input_file = glob.glob("ospf-settings.yaml")
+        out=commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " + OS_PASSWORD + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " + OS_AUTH_URL + " stack-update -f " + input_file[0] + " -P 'area_id=3.3.3.3;grid_members=" + Members + ";is_ipv4=False' ospf_conf_v6")
+        time.sleep(10)
+        logging.info(out)
+
+    @pytest.mark.run(order=7)
+    def test_validate_updated_nios_ospf_conf(self):
+        flag = False
+        logging.info("Validating OSPF Configuration in NIOS")
+        params = "?host_name=" + Members + "&_return_fields=ospf_list"
+        response = ib_NIOS.wapi_request('GET', object_type = "member", params = params)
+        x = json.loads(response)[0]['ospf_list'][0]['area_id']
+        if x == '3.3.3.3':
+            flag = True
+        assert flag
+
+    @pytest.mark.run(order=8)
     def test_delete_ospf_ipv6_config(self):
         logging.info("Delete OSPF IPV6 Configuration using heat")
         out=commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " + OS_PASSWORD + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " + OS_AUTH_URL + " stack-delete ospf_conf_v6")
