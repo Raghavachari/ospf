@@ -12,7 +12,7 @@ CONF = "config.ini"
 parser = ConfigParser.SafeConfigParser()
 parser.read(CONF)
 GRID_VIP = parser.get('BGP', 'GRID_VIP')
-Members = parser.get('BGP', 'Members')
+Member = parser.get('BGP', 'Member')
 AS = parser.get('BGP', 'AS')
 authentication_mode = parser.get('BGP', 'authentication_mode')
 bgp_neighbor_pass = parser.get('BGP', 'bgp_neighbor_pass')
@@ -44,7 +44,7 @@ class BgpConfig(unittest.TestCase):
                                + authentication_mode + ";bgp_neighbor_pass=" + bgp_neighbor_pass + ";comment="\
                                + comment + ";holddown=" + holddown + ";interface=" + interface + ";keepalive="\
                                + keepalive + ";link_detect=" + link_detect + ";neighbor_ip=" + neighbor_ip +\
-                               ";remote_as=" + remote_as + ";grid_member=" + Members + "' bgp_conf_v4")
+                               ";remote_as=" + remote_as + ";grid_member=" + Member + "' bgp_conf_v4")
         status = ib_NIOS.wait_for_stack("bgp_conf_v4")
         assert status, "STACK CREATE FAILED"
         logging.info(out)
@@ -52,7 +52,7 @@ class BgpConfig(unittest.TestCase):
     @pytest.mark.run(order=2)
     def test_validate_nios_bgp_conf(self):
         logging.info("Validating BGP Configuration in NIOS")
-        params = "?host_name=" + Members + "&_return_fields=bgp_as"
+        params = "?host_name=" + Member + "&_return_fields=bgp_as"
         response = ib_NIOS.wapi_request('GET', object_type = "member", params = params)
         asn = json.loads(response)[0]['bgp_as'][0]['as']
         hd = json.loads(response)[0]['bgp_as'][0]['holddown']
@@ -82,7 +82,7 @@ class BgpConfig(unittest.TestCase):
                                  " stack-update -f " + input_file[0] + " -P 'as=" + new_as + ";authentication_mode=" \
                                  + new_authmode + ";bgp_neighbor_pass=" + bgp_neighbor_pass + \
                                  ";neighbor_ip=" + neighbor_ip + ";remote_as=" + remote_as + ";grid_member=" \
-                                 + Members + "' bgp_conf_v4")
+                                 + Member + "' bgp_conf_v4")
         status = ib_NIOS.wait_for_stack("bgp_conf_v4")
         assert status, "STACK UPDATE FAILED"
         logging.info(out)
@@ -91,7 +91,7 @@ class BgpConfig(unittest.TestCase):
     def test_validate_asn_and_authmode(self):
         flag = False
         logging.info("Validating ASN and authentication mode")
-        params = "?host_name=" + Members + "&_return_fields=bgp_as"
+        params = "?host_name=" + Member + "&_return_fields=bgp_as"
         response = ib_NIOS.wapi_request('GET', object_type = "member", params = params)
         asn = json.loads(response)[0]['bgp_as'][0]['as']
         auth_mode = json.loads(response)[0]['bgp_as'][0]['neighbors'][0]['authentication_mode']
@@ -110,7 +110,7 @@ class BgpConfig(unittest.TestCase):
                                  " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " + OS_AUTH_URL + \
                                  " stack-update -f " + input_file[0] + " -P 'as=" + AS + ";authentication_mode=" \
                                  + authentication_mode + ";neighbor_ip=" + neighbor_ipv6 + ";remote_as=" + new_ras +\
-                                 ";grid_member=" + Members + "' bgp_conf_v4")
+                                 ";grid_member=" + Member + "' bgp_conf_v4")
         status = ib_NIOS.wait_for_stack("bgp_conf_v4")
         assert status, "STACK UPDATE FAILED"
         logging.info(out)
@@ -119,7 +119,7 @@ class BgpConfig(unittest.TestCase):
     def test_validate_neighborip_and_remote_as(self):
         flag = False
         logging.info("Validating Updated Neighbor IP and Remote AS")
-        params = "?host_name=" + Members + "&_return_fields=bgp_as"
+        params = "?host_name=" + Member + "&_return_fields=bgp_as"
         response = ib_NIOS.wapi_request('GET', object_type = "member", params = params)
         nip = json.loads(response)[0]['bgp_as'][0]['neighbors'][0]['neighbor_ip']
         ras = json.loads(response)[0]['bgp_as'][0]['neighbors'][0]['remote_as']
@@ -129,7 +129,7 @@ class BgpConfig(unittest.TestCase):
 
     @pytest.mark.run(order=7)
     def test_add_anycast_loopback_with_bgp(self):
-        v = Members.split(',')
+        v = Member.split(',')
         y = []
         for i in v:
             params = "?host_name=" + i + "&_return_fields=vip_setting"
@@ -143,7 +143,7 @@ class BgpConfig(unittest.TestCase):
         out = commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " + OS_PASSWORD \
                                  + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " + OS_AUTH_URL \
                                  + " stack-create -f " + input_file[0] \
-                                 + " -P 'ip=3.3.3.3;enable_bgp=true;grid_members=" + Members + "' anycast")
+                                 + " -P 'ip=3.3.3.3;enable_bgp=true;grid_members=" + Member + "' anycast")
         logging.info(out)
         status = ib_NIOS.wait_for_stack("anycast")
         assert status, "STACK CREATE FAILED"
@@ -151,7 +151,7 @@ class BgpConfig(unittest.TestCase):
             time.sleep(90)
         logging.info("Validating Anycast Loopback IP in NIOS")
         flag = False
-        params = "?host_name=" + Members + "&_return_fields=additional_ip_list"
+        params = "?host_name=" + Member + "&_return_fields=additional_ip_list"
         response = ib_NIOS.wapi_request('GET', object_type="member", params=params)
         x = json.loads(response)[0]["additional_ip_list"][0]
         if x['ipv4_network_setting']['address'] == '3.3.3.3' and x["enable_bgp"] == True:
@@ -167,7 +167,7 @@ class BgpConfig(unittest.TestCase):
         logging.info(out)
         logging.info("Validating Anycast BGP Configuration should not delete on NIOS")
         flag = False
-        params = "?host_name=" + Members + "&_return_fields=bgp_as"
+        params = "?host_name=" + Member + "&_return_fields=bgp_as"
         response = ib_NIOS.wapi_request('GET', object_type="member", params=params)
         x = json.loads(response)[0]['bgp_as']
         if len(x) > 0:
@@ -176,7 +176,7 @@ class BgpConfig(unittest.TestCase):
 
     @pytest.mark.run(order=9)
     def test_delete_anycast_loopback_ip(self):
-        v = Members.split(',')
+        v = Member.split(',')
         y = []
         for i in v:
             params = "?host_name=" + i + "&_return_fields=vip_setting"
@@ -193,7 +193,7 @@ class BgpConfig(unittest.TestCase):
         logging.info(out)
         logging.info("Validating Anycast Loopback IP is delete on NIOS")
         flag = False
-        params = "?host_name=" + Members + "&_return_fields=additional_ip_list"
+        params = "?host_name=" + Member + "&_return_fields=additional_ip_list"
         response = ib_NIOS.wapi_request('GET', object_type="member", params=params)
         x = json.loads(response)[0]["additional_ip_list"]
         if not x:
@@ -210,7 +210,7 @@ class BgpConfig(unittest.TestCase):
         logging.info("Validating Anycast BGP Configuration delete on NIOS")
         flag = False
         time.sleep(10)
-        params = "?host_name=" + Members + "&_return_fields=ospf_list"
+        params = "?host_name=" + Member + "&_return_fields=ospf_list"
         response = ib_NIOS.wapi_request('GET', object_type="member", params=params)
         x = json.loads(response)[0]['ospf_list']
         if not x:
