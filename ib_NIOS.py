@@ -2,8 +2,10 @@ import ConfigParser
 import logging
 import httplib
 import json
+import time
 import ssl
 from json import loads
+import commands
 
 CONF="config.ini"
 parser = ConfigParser.SafeConfigParser()
@@ -67,3 +69,22 @@ def handle_success(response):
     logging.info('Request finished successfully with response code: %i %s'\
             % (response.status, response.reason))
     return response.read()
+
+def wait_for_stack(stack):
+    status = commands.getoutput("heat stack-show " + stack + " | tr -d ' ' | grep stack_status\| | cut -f3 -d\|")
+    flag = False
+    count = 0
+    while 1:
+        if count >= 5:
+            break
+        if "COMPLETE" in status:
+            flag = True
+            break
+        time.sleep(5)
+        status = commands.getoutput("heat stack-show " + stack + " | tr -d ' ' | grep stack_status\| | cut -f3 -d\|")
+        count = count + 1
+    return flag
+
+
+
+
