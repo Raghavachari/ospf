@@ -75,16 +75,12 @@ def wait_for_stack(stack):
     flag = False
     count = 0
     while 1:
-        if count >= 5:
+        if count >= 10:
             break
         if "COMPLETE" in status:
             flag = True
             break
-        time.sleep(10)
+        time.sleep(5)
         status = commands.getoutput("heat stack-show " + stack + " | tr -d ' ' | grep stack_status\| | cut -f3 -d\|")
         count = count + 1
     return flag
-
-
-
-
