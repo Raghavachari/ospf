@@ -35,7 +35,7 @@ class OspfConfig(unittest.TestCase):
                                ";grid_members=" + Members + ";is_ipv4=True' ospf_conf_v4")
         #status = ib_NIOS.wait_for_stack("ospf_conf_v4")
         #assert status, "STACK CREATE FAILED"
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
     @pytest.mark.run(order=2)
@@ -61,7 +61,7 @@ class OspfConfig(unittest.TestCase):
                                + Members + ";is_ipv4=True' ospf_conf_v4")
         # status = ib_NIOS.wait_for_stack("ospf_conf_v4")
         # assert status, "STACK CREATE FAILED"
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
     @pytest.mark.run(order=4)
@@ -91,7 +91,7 @@ class OspfConfig(unittest.TestCase):
                                  ";grid_members=" + Members + ";is_ipv4=True' ospf_conf_v4")
         # status = ib_NIOS.wait_for_stack("ospf_conf_v4")
         # assert status, "STACK CREATE FAILED"
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
     @pytest.mark.run(order=6)
@@ -122,7 +122,7 @@ class OspfConfig(unittest.TestCase):
                                ";grid_members=" + Members + ";is_ipv4=True' ospf_conf_v4")
         # status = ib_NIOS.wait_for_stack("ospf_conf_v4")
         # assert status, "STACK CREATE FAILED"
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
     @pytest.mark.run(order=8)
@@ -141,7 +141,7 @@ class OspfConfig(unittest.TestCase):
             assert flag
 
     @pytest.mark.run(order=9)
-    def test_add_anycast_loopback_with_ospf(self):
+    def test_add_and_validate_anycast_loopback_with_ospf(self):
         v = Members.split(',')
         y = []
         for i in v:
@@ -156,13 +156,14 @@ class OspfConfig(unittest.TestCase):
         out=commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " + OS_PASSWORD \
                                + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " + OS_AUTH_URL \
                                + " stack-create -f " + input_file[0] \
-                               + " -P 'ip=3.3.3.3;enable_ospf=true;grid_members=" + Members + "' anycast")
+                               + " -P 'ip=3.3.3.3;enable_ospf=true;enable_dns=true;grid_members=" \
+                               + Members + "' anycast")
         logging.info(out)
         # status = ib_NIOS.wait_for_stack("anycast")
         # assert status, "STACK CREATE FAILED"
         if GRID_VIP in y:
             time.sleep(90)
-        time.sleep(10)
+        time.sleep(15)
         logging.info("Validating Anycast Loopback IP in NIOS")
         flag = False
         v = Members.split(',')
@@ -175,6 +176,18 @@ class OspfConfig(unittest.TestCase):
             assert flag
 
     @pytest.mark.run(order=10)
+    def test_validate_additionl_ip_lists(self):
+        v = Members.split(',')
+        for i in v:
+            params = "?host_name=" + i + "&_return_fields=additional_ip_list"
+            response = ib_NIOS.wapi_request('GET', object_type="member:dns", params=params)
+            x = json.loads(response)[0]["additional_ip_list"]
+            flag = False
+            if '3.3.3.3' in x:
+                flag = True
+            assert flag
+
+    @pytest.mark.run(order=11)
     def test_update_anycast_loopback_ip(self):
         v = Members.split(',')
         y = []
@@ -188,13 +201,14 @@ class OspfConfig(unittest.TestCase):
         out=commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " \
                                + OS_PASSWORD + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " \
                                + OS_AUTH_URL + " stack-update -f " + input_file[0] \
-                               + " -P 'ip=4.4.4.4;enable_ospf=false;grid_members=" + Members + "' anycast")
+                               + " -P 'ip=4.4.4.4;enable_ospf=false;enable_dns=true;grid_members=" \
+                               + Members + "' anycast")
         logging.info(out)
         #status = ib_NIOS.wait_for_stack("anycast")
         #assert status, "STACK UPDATE FAILED"
         if GRID_VIP in y:
             time.sleep(90)
-        time.sleep(10)
+        time.sleep(15)
         logging.info("Validating Updated Anycast Loopback IP in NIOS")
         flag = False
         v = Members.split(',')
@@ -206,7 +220,19 @@ class OspfConfig(unittest.TestCase):
                 flag = True
             assert flag
 
-    @pytest.mark.run(order=11)
+    @pytest.mark.run(order=12)
+    def test_validate_additionl_ip_lists_after_update(self):
+        v = Members.split(',')
+        for i in v:
+            params = "?host_name=" + i + "&_return_fields=additional_ip_list"
+            response = ib_NIOS.wapi_request('GET', object_type="member:dns", params=params)
+            x = json.loads(response)[0]["additional_ip_list"]
+            flag = False
+            if '4.4.4.4' in x:
+                flag = True
+            assert flag
+
+    @pytest.mark.run(order=13)
     def test_update_ospf_conf_comment_and_cost(self):
         logging.info("Update OSPF Conf and add comment, disable auto_calc_cost and add cost")
         commands.getoutput("sed -i -r 's/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/" + GRID_VIP + \
@@ -219,10 +245,10 @@ class OspfConfig(unittest.TestCase):
                                ";grid_members=" + Members + ";is_ipv4=True' ospf_conf_v4")
         #status = ib_NIOS.wait_for_stack("ospf_conf_v4")
         #assert status, "STACK UPDATE FAILED"
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
-    @pytest.mark.run(order=12)
+    @pytest.mark.run(order=14)
     def test_validate_comment_and_cost_in_ospf_conf(self):
         logging.info("Validating comment, disable auto_calc_cost and cost in OSPF Conf")
         v = Members.split(',')
@@ -237,7 +263,7 @@ class OspfConfig(unittest.TestCase):
                 flag = False
             assert flag
 
-    @pytest.mark.run(order=13)
+    @pytest.mark.run(order=15)
     def test_delete_ospf_config_when_anycast_ip_exist_negative_case(self):
         logging.info("Delete OSPF Configuration using heat when anycast ip exist with OSPF enabled")
         out=commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " + OS_PASSWORD \
@@ -255,7 +281,7 @@ class OspfConfig(unittest.TestCase):
                 flag = True
             assert flag
 
-    @pytest.mark.run(order=14)
+    @pytest.mark.run(order=16)
     def test_delete_anycast_loopback_ip(self):
         v = Members.split(',')
         y = []
@@ -270,7 +296,7 @@ class OspfConfig(unittest.TestCase):
                                + OS_AUTH_URL + " stack-delete anycast")
         if GRID_VIP in y:
             time.sleep(90)
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
         logging.info("Validating Anycast Loopback IP is delete on NIOS")
         flag = False
@@ -284,7 +310,19 @@ class OspfConfig(unittest.TestCase):
                 flag = True
             assert flag
 
-    @pytest.mark.run(order=15)
+    @pytest.mark.run(order=17)
+    def test_validate_additionl_ip_lists_after_anycast_ip_deleted(self):
+        v = Members.split(',')
+        for i in v:
+            params = "?host_name=" + i + "&_return_fields=additional_ip_list"
+            response = ib_NIOS.wapi_request('GET', object_type="member:dns", params=params)
+            x = json.loads(response)[0]["additional_ip_list"]
+            flag = False
+            if not '4.4.4.4' in x:
+                flag = True
+            assert flag
+
+    @pytest.mark.run(order=18)
     def test_delete_ospf_config(self):
         logging.info("Delete OSPF Configuration using heat")
         out=commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " \
@@ -293,7 +331,7 @@ class OspfConfig(unittest.TestCase):
         logging.info(out)
         logging.info("Validating Anycast OSPF Configuration delete on NIOS")
         flag = False
-        time.sleep(10)
+        time.sleep(15)
         v = Members.split(',')
         for i in v:
             params = "?host_name=" + i + "&_return_fields=ospf_list"
@@ -303,7 +341,7 @@ class OspfConfig(unittest.TestCase):
                 flag = True
             assert flag
 
-    @pytest.mark.run(order=16)
+    @pytest.mark.run(order=19)
     def test_add_ospf_conf_v6(self):
         logging.info("Adding OSPF IPv6 Configuration Using Heat Template")
         commands.getoutput("sed -i -r 's/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/" + GRID_VIP \
@@ -315,10 +353,10 @@ class OspfConfig(unittest.TestCase):
                                  + ";grid_members=" + Members + ";is_ipv4=False' ospf_conf_v6")
         #status = ib_NIOS.wait_for_stack("ospf_conf_v6")
         #assert status, "STACK CREATION FAILED"
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
-    @pytest.mark.run(order=17)
+    @pytest.mark.run(order=20)
     def test_validate_nios_ospf_conf_v6(self):
         flag = False
         logging.info("Validating OSPF IPv6 Configuration in NIOS")
@@ -329,7 +367,7 @@ class OspfConfig(unittest.TestCase):
             x = json.loads(response)[0]['ospf_list'][0]['area_id']
             assert x == Area_ID_v6, "Area_ID did not match for %s member" % i
 
-    @pytest.mark.run(order=18)
+    @pytest.mark.run(order=21)
     def test_add_anycast_loopback_ipv6_with_ospf(self):
         v = Members.split(',')
         y = []
@@ -345,13 +383,14 @@ class OspfConfig(unittest.TestCase):
         out = commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " + OS_PASSWORD \
                                  + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " + OS_AUTH_URL \
                                  + " stack-create -f " + input_file[0] \
-                                 + " -P 'ip=2020::20;enable_ospf=true;grid_members=" + Members + "' anycast")
+                                 + " -P 'ip=2020::20;enable_ospf=true;enable_dns=true;grid_members=" \
+                                 + Members + "' anycast")
         logging.info(out)
         #status = ib_NIOS.wait_for_stack("anycast")
         #assert status, "STACK CREATION FAILED"
         if GRID_VIP in y:
             time.sleep(90)
-        time.sleep(10)
+        time.sleep(15)
         logging.info("Validating Anycast Loopback IPv6 Address in NIOS")
         flag = False
         v = Members.split(',')
@@ -363,7 +402,19 @@ class OspfConfig(unittest.TestCase):
                 flag = True
             assert flag
 
-    @pytest.mark.run(order=19)
+    @pytest.mark.run(order=22)
+    def test_validate_additionl_ip_lists_after_adding_anycast_ipv6_address(self):
+        v = Members.split(',')
+        for i in v:
+            params = "?host_name=" + i + "&_return_fields=additional_ip_list"
+            response = ib_NIOS.wapi_request('GET', object_type="member:dns", params=params)
+            x = json.loads(response)[0]["additional_ip_list"]
+            flag = False
+            if '2020::20' in x:
+                flag = True
+            assert flag
+
+    @pytest.mark.run(order=23)
     def test_update_anycast_loopback_ipv6_address(self):
         v = Members.split(',')
         y = []
@@ -377,13 +428,14 @@ class OspfConfig(unittest.TestCase):
         out = commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " + OS_PASSWORD \
                                  + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " + OS_AUTH_URL \
                                  + " stack-update -f " + input_file[0] \
-                                 + " -P 'ip=2010::10;enable_ospf=false;grid_members=" + Members + "' anycast")
+                                 + " -P 'ip=2010::10;enable_ospf=false;enable_dns=true;grid_members=" \
+                                 + Members + "' anycast")
         logging.info(out)
         #status = ib_NIOS.wait_for_stack("anycast")
         #assert status, "STACK UPDATE FAILED"
         if GRID_VIP in y:
             time.sleep(90)
-        time.sleep(10)
+        time.sleep(15)
         logging.info("Validating Updated Anycast Loopback IPv6 Address in NIOS")
         flag = False
         v = Members.split(',')
@@ -395,7 +447,19 @@ class OspfConfig(unittest.TestCase):
                 flag = True
             assert flag
 
-    @pytest.mark.run(order=20)
+    @pytest.mark.run(order=24)
+    def test_validate_additionl_ip_lists_after_updating_anycast_ipv6_address(self):
+        v = Members.split(',')
+        for i in v:
+            params = "?host_name=" + i + "&_return_fields=additional_ip_list"
+            response = ib_NIOS.wapi_request('GET', object_type="member:dns", params=params)
+            x = json.loads(response)[0]["additional_ip_list"]
+            flag = False
+            if '2010::10' in x:
+                flag = True
+            assert flag
+
+    @pytest.mark.run(order=25)
     def test_delete_anycast_loopback_ipv6_address(self):
         v = Members.split(',')
         y = []
@@ -411,7 +475,7 @@ class OspfConfig(unittest.TestCase):
         logging.info(out)
         if GRID_VIP in y:
             time.sleep(90)
-        time.sleep(10)
+        time.sleep(15)
         logging.info("Validating Anycast Loopback IPv6 Address is delete on NIOS")
         flag = False
         v = Members.split(',')
@@ -423,14 +487,26 @@ class OspfConfig(unittest.TestCase):
                 flag = True
             assert flag
 
-    @pytest.mark.run(order=21)
+    @pytest.mark.run(order=26)
+    def test_validate_additionl_ip_lists_after_deleting_anycast_ipv6_address(self):
+        v = Members.split(',')
+        for i in v:
+            params = "?host_name=" + i + "&_return_fields=additional_ip_list"
+            response = ib_NIOS.wapi_request('GET', object_type="member:dns", params=params)
+            x = json.loads(response)[0]["additional_ip_list"]
+            flag = False
+            if not '2010::10' in x:
+                flag = True
+            assert flag
+
+    @pytest.mark.run(order=27)
     def test_delete_ospf_ipv6_config(self):
         logging.info("Delete OSPF IPV6 Configuration using heat")
         out = commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " \
                                  + OS_PASSWORD + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " \
                                  + OS_AUTH_URL + " stack-delete ospf_conf_v6")
         logging.info(out)
-        time.sleep(10)
+        time.sleep(15)
         logging.info("Validating Anycast OSPF IPv6 Configuration delete on NIOS")
         flag = False
         v = Members.split(',')

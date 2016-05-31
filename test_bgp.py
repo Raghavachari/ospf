@@ -49,7 +49,7 @@ class BgpConfig(unittest.TestCase):
                                ";remote_as=" + remote_as + ";grid_member=" + Member + "' bgp_conf_v4")
         #status = ib_NIOS.wait_for_stack("bgp_conf_v4")
         #assert status, "STACK CREATE FAILED"
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
     @pytest.mark.run(order=2)
@@ -88,7 +88,7 @@ class BgpConfig(unittest.TestCase):
                                  + Member + "' bgp_conf_v4")
         #status = ib_NIOS.wait_for_stack("bgp_conf_v4")
         #assert status, "STACK UPDATE FAILED"
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
     @pytest.mark.run(order=4)
@@ -117,7 +117,7 @@ class BgpConfig(unittest.TestCase):
                                  ";grid_member=" + Member + "' bgp_conf_v4")
         #status = ib_NIOS.wait_for_stack("bgp_conf_v4")
         #assert status, "STACK UPDATE FAILED"
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
     @pytest.mark.run(order=6)
@@ -148,13 +148,13 @@ class BgpConfig(unittest.TestCase):
         out = commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " + OS_PASSWORD \
                                  + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " + OS_AUTH_URL \
                                  + " stack-create -f " + input_file[0] \
-                                 + " -P 'ip=3.3.3.3;enable_bgp=true;grid_members=" + Member + "' anycast")
+                                 + " -P 'ip=3.3.3.3;enable_bgp=true;enable_dns=true;grid_members=" + Member + "' anycast")
         logging.info(out)
         #status = ib_NIOS.wait_for_stack("anycast")
         #assert status, "STACK CREATE FAILED"
         if GRID_VIP in y:
             time.sleep(90)
-        time.sleep(10)
+        time.sleep(15)
         logging.info("Validating Anycast Loopback IP in NIOS")
         flag = False
         params = "?host_name=" + Member + "&_return_fields=additional_ip_list"
@@ -165,6 +165,16 @@ class BgpConfig(unittest.TestCase):
         assert flag
 
     @pytest.mark.run(order=8)
+    def test_validate_additionl_ip_lists(self):
+        params = "?host_name=" + Member + "&_return_fields=additional_ip_list"
+        response = ib_NIOS.wapi_request('GET', object_type="member:dns", params=params)
+        x = json.loads(response)[0]["additional_ip_list"]
+        flag = False
+        if '3.3.3.3' in x:
+            flag = True
+        assert flag
+
+    @pytest.mark.run(order=9)
     def test_delete_bgp_config_when_anycast_ip_exist_negative_case(self):
         logging.info("Delete BGP Configuration using heat when anycast ip exist with BGP enabled")
         out = commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " + OS_PASSWORD \
@@ -180,7 +190,7 @@ class BgpConfig(unittest.TestCase):
             flag = True
         assert flag
 
-    @pytest.mark.run(order=9)
+    @pytest.mark.run(order=10)
     def test_delete_anycast_loopback_ip(self):
         v = Member.split(',')
         y = []
@@ -195,7 +205,7 @@ class BgpConfig(unittest.TestCase):
                                  + OS_AUTH_URL + " stack-delete anycast")
         if GRID_VIP in y:
             time.sleep(90)
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
         logging.info("Validating Anycast Loopback IP is delete on NIOS")
         flag = False
@@ -206,7 +216,17 @@ class BgpConfig(unittest.TestCase):
             flag = True
         assert flag
 
-    @pytest.mark.run(order=10)
+    @pytest.mark.run(order=11)
+    def test_validate_additionl_ip_lists_after_deleting_anycast_ip(self):
+        params = "?host_name=" + Member + "&_return_fields=additional_ip_list"
+        response = ib_NIOS.wapi_request('GET', object_type="member:dns", params=params)
+        x = json.loads(response)[0]["additional_ip_list"]
+        flag = False
+        if not '3.3.3.3' in x:
+            flag = True
+        assert flag
+
+    @pytest.mark.run(order=12)
     def test_add_new_neighbourip(self):
         logging.info("Adding new neighbor using bgp-neighbor-seeings.yaml")
         commands.getoutput("sed -i -r 's/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/" + GRID_VIP + \
@@ -216,10 +236,10 @@ class BgpConfig(unittest.TestCase):
                                  + " --os-tenant-name " + OS_TENANT_NAME + " --os-auth-url " \
                                  + OS_AUTH_URL + " stack-create -f " + input_file[0] + " -P 'neighbor_ip=" \
                                  + new_nip + ";remote_as=" + new_remote_as + ";grid_member=" + Member + "' bgp_nip")
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
-    @pytest.mark.run(order=11)
+    @pytest.mark.run(order=13)
     def test_validate_new_neighborip_and_ras(self):
         logging.info("Validating newly added neighbor ip")
         flag = False
@@ -231,7 +251,7 @@ class BgpConfig(unittest.TestCase):
             flag = True
         assert flag
 
-    @pytest.mark.run(order=12)
+    @pytest.mark.run(order=14)
     def test_update_authmode_comment_in_new_neighbor(self):
         logging.info("Updating authentication mode and comment in new bpg neighbor")
         commands.getoutput("sed -i -r 's/[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/" + GRID_VIP + \
@@ -242,10 +262,10 @@ class BgpConfig(unittest.TestCase):
                              + OS_AUTH_URL + " stack-update -f " + input_file[0] + " -P 'neighbor_ip=" \
                              + new_nip + ";remote_as=" + new_remote_as + ";grid_member=" + Member \
                              + ";authentication_mode=MD5;bgp_neighbor_pass=password;comment=test$23' bgp_nip")
-        time.sleep(10)
+        time.sleep(15)
         logging.info(out)
 
-    @pytest.mark.run(order=13)
+    @pytest.mark.run(order=15)
     def test_validate_authmode_comment_in_new_neighbor(self):
         logging.info("Validating authentication mode and comment in new bpg neighbor")
         flag = False
@@ -257,7 +277,7 @@ class BgpConfig(unittest.TestCase):
             flag = True
         assert flag
 
-    @pytest.mark.run(order=14)
+    @pytest.mark.run(order=16)
     def test_delete_new_neighbor(self):
         logging.info("Deleting the newly added bgp neighbor")
         out = commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " \
@@ -266,7 +286,7 @@ class BgpConfig(unittest.TestCase):
         logging.info(out)
         logging.info("Validating new neighbor is deleted")
         flag = False
-        time.sleep(10)
+        time.sleep(15)
         params = "?host_name=" + Member + "&_return_fields=bgp_as"
         response = ib_NIOS.wapi_request('GET', object_type="member", params=params)
         x = json.loads(response)[0]['bgp_as'][0]['neighbors']
@@ -275,7 +295,7 @@ class BgpConfig(unittest.TestCase):
             flag = True
         assert flag
 
-    @pytest.mark.run(order=15)
+    @pytest.mark.run(order=17)
     def test_delete_bgp_config(self):
         logging.info("Delete BGP Configuration using heat")
         out = commands.getoutput("heat --os-username " + OS_USERNAME + " --os-password " \
@@ -284,7 +304,7 @@ class BgpConfig(unittest.TestCase):
         logging.info(out)
         logging.info("Validating Anycast BGP Configuration delete on NIOS")
         flag = False
-        time.sleep(10)
+        time.sleep(15)
         params = "?host_name=" + Member + "&_return_fields=bgp_as"
         response = ib_NIOS.wapi_request('GET', object_type="member", params=params)
         x = json.loads(response)[0]['bgp_as']
