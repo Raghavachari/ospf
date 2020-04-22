@@ -12,7 +12,7 @@ parser = ConfigParser.SafeConfigParser()
 parser.read(CONF)
 GRID_VIP = parser.get('Default', 'GRID_VIP')
 USERNAME = "admin"
-PASSWORD = "infoblox"
+PASSWORD = ""
 VERSION = "2.3"
 PATH = '/wapi/v' + VERSION + '/'
 DEFAULT_OBJECT_TYPE = "member"
